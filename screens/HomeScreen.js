@@ -4,10 +4,11 @@ import { theme } from "../theme";
 import { Colors } from "react-native/Libraries/NewAppScreen";
 import { CalendarDaysIcon, MagnifyingGlassIcon, MapPinIcon } from 'react-native-heroicons/outline'
 import { debounce } from 'lodash'
-import { fetchSearchLocations, fetchWeatherForecast } from "../api/weather";
-import { weatherImages } from "../constants";
+import { fetchSearchLocations, fetchWeatherForecast, reverseGeocode } from "../api/weather";
+import { hereApiKey, weatherImages } from "../constants";
 import * as Progress from 'react-native-progress'
 import { getData, storeData } from "../utils/async_storage";
+import Geolocation from "@react-native-community/geolocation";
 
 export default function HomeScreen() {
     const [showSeach, toggleSeach] = useState(true)
@@ -38,14 +39,48 @@ export default function HomeScreen() {
         getCurrentForecast()
     }, [])
 
-    const getCurrentForecast = async () => {
-        let myCity = await getData('city')
-        let cityName = 'Singapore'
-        if (myCity) cityName = myCity
-        fetchWeatherForecast({ cityName: cityName, days: '7' }).then((data) => {
-            setWeather(data)
-            setLoading(false)
+    function getAddressFromCoordinates(latitude, longitude) {
+        return new Promise((resolve) => {
+            const url = `https://reverse.geocoder.ls.hereapi.com/6.2/reversegeocode.json?apiKey=${hereApiKey}&mode=retrieveAddresses&prox=${latitude},${longitude}`
+            fetch(url)
+                .then(res => res.json())
+                .then((resJson) => {
+                    // the response had a deeply nested structure :/
+                    console.log(resJson);
+                    if (resJson
+                        && resJson.Response
+                        && resJson.Response.View
+                        && resJson.Response.View[0]
+                        && resJson.Response.View[0].Result
+                        && resJson.Response.View[0].Result[0]) {
+                        resolve(resJson.Response.View[0].Result[0].Location.Address.Label)
+                    } else {
+                        resolve()
+                    }
+                })
+                .catch((e) => {
+                    console.log('Error in getAddressFromCoordinates', e)
+                    resolve()
+                })
         })
+    }
+
+
+    const getCurrentForecast = async () => {
+        // let myCity = await getData('city')
+        let cityName = "";
+        Geolocation.getCurrentPosition(async (position) => {
+            let address = await reverseGeocode({
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude
+            })
+            cityName = address.items[0].address.county
+            fetchWeatherForecast({ cityName: cityName, days: '7' }).then((data) => {
+                setWeather(data)
+                setLoading(false)
+            })
+        })
+        // if (myCity) cityName = myCity
     }
 
     const handleTextDebounce = useCallback(debounce(handleSearch, 1200), [])
@@ -112,7 +147,7 @@ export default function HomeScreen() {
                             {/* degree c */}
                             <View className="space-y-2">
                                 <Text className="text-center font-bold text-white text-6xl ml-5">{current?.temp_c}&#176;</Text>
-                                <Text className="text-center text-white text-xl tracking-widest">Party cloudy</Text>
+                                <Text className="text-center text-white text-xl tracking-widest">{current?.condition?.text}</Text>
                             </View>
                             {/* other stats */}
                             <View className="flex-row justify-between mx-4">

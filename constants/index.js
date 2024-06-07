@@ -4,6 +4,7 @@ export const weatherImages = {
     'Partly cloudy': require('../assets/images/partlycloudy.png'),
     'Cloudy': require('../assets/images/cloud.png'),
 
+    'Light rain shower': require('../assets/images/moderaterain.png'),
     'Partly Cloudy ': require('../assets/images/partlycloudy.png'),
     'Moderate rain': require('../assets/images/moderaterain.png'),
     'Patchy rain nearby': require('../assets/images/moderaterain.png'),
@@ -21,4 +22,5 @@ export const weatherImages = {
     'other': require('../assets/images/moderaterain.png'),
 }
 
-// export default [apiKey, weatherImages]
+export const hereAppId = "J9oKaIYSs7FdTaMXZtRt"
+export const hereApiKey = "G9xpMso5two1AnqrtLkh4AYkA5VesPEIeNKgMxFvhms"
